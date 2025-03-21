@@ -52,44 +52,40 @@ st.markdown("### Your AI-powered investment advisor")
 @st.cache_data
 def load_sample_portfolio():
     data = {
-        'ticker': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'],
+        'symbol': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'],
         'shares': [10, 5, 2, 3, 8],
         'purchase_price': [150.75, 280.50, 2750.25, 3300.10, 220.75],
-        'purchase_date': ['2023-01-15', '2023-03-20', '2022-11-05', '2023-05-10', '2022-08-22']
+        'holding_type': ['long_term', 'short_term', 'long_term', 'short_term', 'long_term']
     }
     return pd.DataFrame(data)
 
 # Get current stock prices
 @st.cache_data(ttl=3600)
-def get_current_prices(tickers):
+def get_current_prices(_symbols):
+    symbols = list(_symbols) if hasattr(_symbols, '__iter__') and not isinstance(_symbols, str) else [_symbols]
     prices = {}
-    for ticker in tickers:
+    for symbol in symbols:
         try:
-            stock = yf.Ticker(ticker)
+            stock = yf.Ticker(symbol)
             data = stock.history(period="1d")
             if not data.empty:
-                prices[ticker] = data['Close'].iloc[-1]
+                prices[symbol] = data['Close'].iloc[-1]
             else:
-                prices[ticker] = 0
+                prices[symbol] = 0
         except:
-            prices[ticker] = 0
+            prices[symbol] = 0
     return prices
 
 # Calculate portfolio metrics
 def calculate_portfolio_metrics(portfolio_df, current_prices):
-    portfolio_df['current_price'] = portfolio_df['ticker'].map(current_prices)
+    portfolio_df['current_price'] = portfolio_df['symbol'].map(current_prices)
     portfolio_df['current_value'] = portfolio_df['shares'] * portfolio_df['current_price']
     portfolio_df['purchase_value'] = portfolio_df['shares'] * portfolio_df['purchase_price']
     portfolio_df['unrealized_gain'] = portfolio_df['current_value'] - portfolio_df['purchase_value']
     portfolio_df['unrealized_gain_percent'] = (portfolio_df['unrealized_gain'] / portfolio_df['purchase_value']) * 100
     
-    # Calculate holding period
-    portfolio_df['purchase_date'] = pd.to_datetime(portfolio_df['purchase_date'])
-    portfolio_df['holding_period_days'] = (datetime.now() - portfolio_df['purchase_date']).dt.days
-    portfolio_df['holding_type'] = portfolio_df['holding_period_days'].apply(lambda x: 'long_term' if x >= 365 else 'short_term')
-    
-    # Calculate tax rates (simplified)
-    portfolio_df['tax_rate'] = portfolio_df['holding_type'].apply(lambda x: 0.15 if x == 'long_term' else 0.35)
+    # Calculate tax rates based on holding_type
+    portfolio_df['tax_rate'] = portfolio_df['holding_type'].apply(lambda x: 0.15 if x.lower() == 'long_term' else 0.35)
     portfolio_df['estimated_tax'] = portfolio_df.apply(lambda x: x['unrealized_gain'] * x['tax_rate'] if x['unrealized_gain'] > 0 else 0, axis=1)
     portfolio_df['effective_tax_rate'] = portfolio_df.apply(lambda x: (x['estimated_tax'] / x['unrealized_gain'] * 100) if x['unrealized_gain'] > 0 else 0, axis=1)
     
@@ -204,7 +200,7 @@ with tab2:
     else:
         try:
             # Get current prices
-            current_prices = get_current_prices(st.session_state.portfolio_data['ticker'].tolist())
+            current_prices = get_current_prices(list(st.session_state.portfolio_data['symbol'].tolist()))
             
             # Calculate portfolio metrics
             portfolio_with_metrics = calculate_portfolio_metrics(st.session_state.portfolio_data.copy(), current_prices)
@@ -230,8 +226,8 @@ with tab2:
             # Display holding period breakdown
             st.subheader("Holding Period Breakdown")
             
-            short_term = portfolio_with_metrics[portfolio_with_metrics['holding_type'] == 'short_term']
-            long_term = portfolio_with_metrics[portfolio_with_metrics['holding_type'] == 'long_term']
+            short_term = portfolio_with_metrics[portfolio_with_metrics['holding_type'].str.lower() == 'short_term']
+            long_term = portfolio_with_metrics[portfolio_with_metrics['holding_type'].str.lower() == 'long_term']
             
             short_term_value = short_term['current_value'].sum()
             long_term_value = long_term['current_value'].sum()
@@ -260,14 +256,14 @@ with tab2:
             # Format the dataframe for display
             display_df = portfolio_with_metrics.copy()
             display_df = display_df[[
-                'ticker', 'shares', 'purchase_price', 'current_price', 
+                'symbol', 'shares', 'purchase_price', 'current_price', 
                 'unrealized_gain', 'unrealized_gain_percent', 'holding_type', 
                 'estimated_tax', 'effective_tax_rate'
             ]]
             
             # Rename columns for better readability
             display_df.columns = [
-                'Ticker', 'Shares', 'Purchase Price', 'Current Price', 
+                'Symbol', 'Shares', 'Purchase Price', 'Current Price', 
                 'Unrealized Gain', 'Gain %', 'Holding Type', 
                 'Est. Tax', 'Tax Rate %'
             ]
@@ -302,7 +298,7 @@ with tab3:
                 'VIX': '^VIX'
             }
             
-            index_values = get_current_prices(indices.values())
+            index_values = get_current_prices(list(indices.values()))
             index_display = {name: index_values.get(symbol, 0) for name, symbol in indices.items()}
             
             # Display market indices
@@ -355,38 +351,38 @@ with tab3:
             
             st.plotly_chart(fig, use_container_width=True)
             
-            # Display portfolio ticker analysis
-            st.subheader("Portfolio Ticker Analysis")
+            # Display portfolio symbol analysis
+            st.subheader("Portfolio Symbol Analysis")
             
             # Simulated technical indicators
-            ticker_indicators = {
-                ticker: {
+            symbol_indicators = {
+                symbol: {
                     'RSI': np.random.uniform(30, 70),
                     'Trend': np.random.choice(['Bullish', 'Bearish', 'Neutral']),
                     'Volatility': np.random.uniform(0.5, 2.5),
                     'Status': np.random.choice(['Neutral', 'Overbought', 'Oversold'])
-                } for ticker in st.session_state.portfolio_data['ticker']
+                } for symbol in st.session_state.portfolio_data['symbol']
             }
             
-            # Create a dataframe for ticker indicators
-            ticker_data = []
+            # Create a dataframe for symbol indicators
+            symbol_data = []
             
-            for ticker, indicators in ticker_indicators.items():
-                ticker_data.append({
-                    'Ticker': ticker,
+            for symbol, indicators in symbol_indicators.items():
+                symbol_data.append({
+                    'Symbol': symbol,
                     'RSI': indicators['RSI'],
                     'Trend': indicators['Trend'],
                     'Volatility': indicators['Volatility'],
                     'Status': indicators['Status']
                 })
             
-            ticker_df = pd.DataFrame(ticker_data)
+            symbol_df = pd.DataFrame(symbol_data)
             
             # Format numeric columns
-            ticker_df['RSI'] = ticker_df['RSI'].map('{:.2f}'.format)
-            ticker_df['Volatility'] = ticker_df['Volatility'].map('{:.2f}%'.format)
+            symbol_df['RSI'] = symbol_df['RSI'].map('{:.2f}'.format)
+            symbol_df['Volatility'] = symbol_df['Volatility'].map('{:.2f}%'.format)
             
-            st.dataframe(ticker_df, use_container_width=True)
+            st.dataframe(symbol_df, use_container_width=True)
             
             # Display market sentiment
             st.subheader("Market Sentiment")
@@ -399,13 +395,13 @@ with tab3:
             
             # Simulated earnings data
             earnings = [
-                {'ticker': 'AAPL', 'company_name': 'Apple Inc.', 'date': '2025-04-30', 'time': 'After Market Close', 'eps_estimate': 1.56},
-                {'ticker': 'MSFT', 'company_name': 'Microsoft Corporation', 'date': '2025-04-29', 'time': 'After Market Close', 'eps_estimate': 2.35},
-                {'ticker': 'GOOGL', 'company_name': 'Alphabet Inc.', 'date': '2025-04-28', 'time': 'After Market Close', 'eps_estimate': 1.78}
+                {'symbol': 'AAPL', 'company_name': 'Apple Inc.', 'date': '2025-04-30', 'time': 'After Market Close', 'eps_estimate': 1.56},
+                {'symbol': 'MSFT', 'company_name': 'Microsoft Corporation', 'date': '2025-04-29', 'time': 'After Market Close', 'eps_estimate': 2.35},
+                {'symbol': 'GOOGL', 'company_name': 'Alphabet Inc.', 'date': '2025-04-28', 'time': 'After Market Close', 'eps_estimate': 1.78}
             ]
             
             earnings_df = pd.DataFrame(earnings)
-            earnings_df['In Portfolio'] = earnings_df['ticker'].isin(st.session_state.portfolio_data['ticker'])
+            earnings_df['In Portfolio'] = earnings_df['symbol'].isin(st.session_state.portfolio_data['symbol'])
             
             st.dataframe(earnings_df, use_container_width=True)
             
