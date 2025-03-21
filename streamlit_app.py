@@ -397,6 +397,9 @@ with tab3:
             # Display upcoming earnings
             st.subheader("Upcoming Earnings")
             
-            # Simulated earnings data
-            earnings = [
-                {'ticker': 'AAPL', 'compa<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with `grep -n` in order to find the line numbers of what you are looking for.</NOTE>
+           # Simulated earnings data
+earnings = [
+    {'ticker': 'AAPL', 'company_name': 'Apple Inc.', 'date': '2025-04-30', 'time': 'After Market Close', 'eps_estimate': 1.56},
+    {'ticker': 'MSFT', 'company_name': 'Microsoft Corporation', 'date': '2025-04-29', 'time': 'After Market Close', 'eps_estimate': 2.35},
+    {'ticker': 'GOOGL', 'company_name': 'Alphabet Inc.', 'date': '2025-04-28', 'time': 'After Market Close', 'eps_estimate': 1.78}
+]
