@@ -397,9 +397,72 @@ with tab3:
             # Display upcoming earnings
             st.subheader("Upcoming Earnings")
             
-           # Simulated earnings data
-earnings = [
-    {'ticker': 'AAPL', 'company_name': 'Apple Inc.', 'date': '2025-04-30', 'time': 'After Market Close', 'eps_estimate': 1.56},
-    {'ticker': 'MSFT', 'company_name': 'Microsoft Corporation', 'date': '2025-04-29', 'time': 'After Market Close', 'eps_estimate': 2.35},
-    {'ticker': 'GOOGL', 'company_name': 'Alphabet Inc.', 'date': '2025-04-28', 'time': 'After Market Close', 'eps_estimate': 1.78}
-]
+            # Simulated earnings data
+            earnings = [
+                {'ticker': 'AAPL', 'company_name': 'Apple Inc.', 'date': '2025-04-30', 'time': 'After Market Close', 'eps_estimate': 1.56},
+                {'ticker': 'MSFT', 'company_name': 'Microsoft Corporation', 'date': '2025-04-29', 'time': 'After Market Close', 'eps_estimate': 2.35},
+                {'ticker': 'GOOGL', 'company_name': 'Alphabet Inc.', 'date': '2025-04-28', 'time': 'After Market Close', 'eps_estimate': 1.78}
+            ]
+            
+            earnings_df = pd.DataFrame(earnings)
+            earnings_df['In Portfolio'] = earnings_df['ticker'].isin(st.session_state.portfolio_data['ticker'])
+            
+            st.dataframe(earnings_df, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error displaying market overview: {str(e)}")
+
+# Tab 4: Settings
+with tab4:
+    st.header("Settings")
+    
+    # Tax settings
+    st.subheader("Tax Settings")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        filing_status = st.selectbox(
+            "Filing Status",
+            ["single", "married_joint", "head_household", "married_separate"],
+            index=0
+        )
+    
+    with col2:
+        annual_income = st.number_input(
+            "Annual Income",
+            min_value=0,
+            max_value=1000000,
+            value=100000,
+            step=5000
+        )
+    
+    update_tax = st.button("Update Tax Settings")
+    
+    # App settings
+    st.subheader("App Settings")
+    
+    # Theme selection
+    theme = st.selectbox(
+        "Theme",
+        ["Light", "Dark"],
+        index=1
+    )
+    
+    # Data refresh interval
+    refresh_interval = st.slider(
+        "Market Data Refresh Interval (minutes)",
+        min_value=5,
+        max_value=60,
+        value=30,
+        step=5
+    )
+    
+    save_settings = st.button("Save Settings")
+    
+    if save_settings:
+        st.success("Settings saved!")
+
+# Footer
+st.markdown("---")
+st.markdown("Stock Trading Assistant - Developed with Streamlit")
